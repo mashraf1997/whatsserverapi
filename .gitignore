@@ -1,0 +1,25 @@
+# Dependencies
+node_modules/
+
+# Environment & secrets
+.env
+.env.local
+*.pem
+
+# WhatsApp / Baileys auth & session state
+auth_info*/
+sessions/
+session*/
+store*.json
+baileys_store*.json
+
+# Build artifacts & archives
+*.zip
+*.log
+logs/
+npm-debug.log*
+yarn-error.log*
+
+# OS files
+.DS_Store
+Thumbs.db

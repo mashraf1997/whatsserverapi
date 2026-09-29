@@ -293,7 +293,7 @@ const WAZIPER = {
 	webhook: async function(instance_id, data){
 		var tb_webhook = await Common.db_query("SHOW TABLES LIKE 'sp_whatsapp_webhook'");
 		if(tb_webhook){
-			var webhook = await Common.db_query("SELECT * FROM sp_whatsapp_webhook WHERE status = 1 AND instance_id = '"+instance_id+"'");
+			var webhook = await Common.db_query("SELECT * FROM sp_whatsapp_webhook WHERE status = 1 AND instance_id = ?", [instance_id]);
 			if(webhook){
                 axios.post(webhook.webhook_url, { instance_id: instance_id, data: data }).then((res) => {}).catch((err) => {});
 			}
@@ -384,7 +384,7 @@ const WAZIPER = {
 	bulk_messaging: async function(){
 		const d = new Date();
 		var time_now = d.getTime()/1000
-		var items = await Common.db_query(`SELECT * FROM sp_whatsapp_schedules WHERE status = 1 AND run <= '`+time_now+`' AND accounts != '' AND time_post <= '`+time_now+`' ORDER BY time_post ASC LIMIT 5`, false);
+		var items = await Common.db_query(`SELECT * FROM sp_whatsapp_schedules WHERE status = 1 AND run <= ? AND accounts != '' AND time_post <= ? ORDER BY time_post ASC LIMIT 5`, [time_now, time_now], false);
 		
 		if(items){
 			items.forEach( async (item) => {
@@ -787,10 +787,10 @@ const WAZIPER = {
 		var time_now = Math.floor(new Date().getTime() / 1000);
 
 		//
-		var team = await Common.db_query(`SELECT owner FROM sp_team WHERE id = '`+item.team_id+`'`);
+		var team = await Common.db_query(`SELECT owner FROM sp_team WHERE id = ?`, [item.team_id]);
 		if(!team){ return false }
 
-		var user = await Common.db_query(`SELECT expiration_date FROM sp_users WHERE id = '`+team.owner+`'`);
+		var user = await Common.db_query(`SELECT expiration_date FROM sp_users WHERE id = ?`, [team.owner]);
 		if(!user){ return false }
 
 		if(user.expiration_date < time_now){
@@ -1124,7 +1124,7 @@ const WAZIPER = {
 			}
 
 			var pid = Common.get_phone(wa_info.id, 'wid');
-			var account_other = await Common.db_query(`SELECT id FROM sp_accounts WHERE pid = '`+pid+`' AND team_id = '`+team_id+`' AND id != '`+account.id+`'`);
+			var account_other = await Common.db_query(`SELECT id FROM sp_accounts WHERE pid = ? AND team_id = ? AND id != ?`, [pid, team_id, account.id]);
 			if(account_other){
 				await Common.db_delete("sp_accounts", [ { id: account_other.id } ]);
 			}
