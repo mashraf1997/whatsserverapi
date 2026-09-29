@@ -46,6 +46,7 @@ WAZIPER.app.get('/', WAZIPER.cors, async (req, res) => {
     return res.json({ status: 'success', message: "Welcome to WAZIPER" });
 });
 
-WAZIPER.server.listen(8000, () => {
-    console.log("WAZIPER IS LIVE");
+const PORT = process.env.PORT || 8000;
+WAZIPER.server.listen(PORT, () => {
+    console.log("WAZIPER IS LIVE on port " + PORT);
 });
