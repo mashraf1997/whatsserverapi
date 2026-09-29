@@ -5,9 +5,23 @@ const db_connect = mysql.createPool(config.database);
 
 
 const Common = {
-	db_query: async function(query, row){
+	// db_query(query, row)          -> plain query (backward compatible)
+	// db_query(query, params, row)  -> parameterized query; `params` is an array
+	//                                  whose values the driver safely escapes in
+	//                                  place of each `?`.
+	// Always prefer the parameterized form for any value that comes from a
+	// request or the database, to prevent SQL injection.
+	db_query: async function(query, paramsOrRow, row){
+		var params = [];
+		if (Array.isArray(paramsOrRow)) {
+			params = paramsOrRow;
+		} else {
+			// Called as db_query(query, row): shift the argument.
+			row = paramsOrRow;
+		}
+
 		var res = await new Promise( async (resolve, reject)=>{
-	        db_connect.query( query, (err, res)=>{
+	        db_connect.query( query, params, (err, res)=>{
 	            return resolve(res, true);
 	        });
 	    });
@@ -115,7 +129,7 @@ const Common = {
 
 	get_phone_number: async function(contact_id, phone_numbers){
 		var res = await new Promise( async (resolve, reject)=>{
-	        db_connect.query( `SELECT *  FROM sp_whatsapp_phone_numbers WHERE pid = '`+contact_id+`' AND phone NOT IN( ? ) LIMIT 5`, [ phone_numbers ],  (err, res)=>{
+	        db_connect.query( `SELECT * FROM sp_whatsapp_phone_numbers WHERE pid = ? AND phone NOT IN ( ? ) LIMIT 5`, [ contact_id, phone_numbers ],  (err, res)=>{
 	            return resolve(res);
 	        });
 	    });
@@ -136,8 +150,13 @@ const Common = {
 	},
 
 	get_accounts: async function(accounts){
+		// Accept either an array of ids or a legacy comma-separated string.
+		if (!Array.isArray(accounts)) {
+			accounts = String(accounts).split(",").map(function(id){ return id.trim(); }).filter(Boolean);
+		}
+
 		var res = await new Promise( async (resolve, reject)=>{
-	        db_connect.query( "SELECT count(*) as count FROM sp_accounts WHERE id IN  ("+accounts+") AND status = 1",  (err, res)=>{
+	        db_connect.query( "SELECT count(*) as count FROM sp_accounts WHERE id IN (?) AND status = 1", [ accounts ],  (err, res)=>{
 	            return resolve(res);
 	        });
 	    });
@@ -207,31 +226,6 @@ const Common = {
 			}];
 
 	        db_connect.query( "UPDATE sp_accounts SET ? WHERE ?", data,  (err, res)=>{
-	            return resolve(res, true);
-	        });
-	    });
-
-		return res;
-	},
-
-	db_insert_stats: async function(team_id){
-		var res = await new Promise( async (resolve, reject)=>{
-			var data  = {
-				ids: Common.makeid(13),
-				team_id: team_id,
-				wa_total_sent_by_month: 0,
-				wa_total_sent: 0,
-				wa_chatbot_count: 0,
-				wa_autoresponder_count: 0,
-				wa_api_count: 0,
-				wa_bulk_total_count: 0,
-				wa_bulk_sent_count: 0,
-				wa_bulk_failed_count: 0,
-				wa_time_reset: 0,
-				next_update: 0
-			};
-
-	        db_connect.query( "INSERT INTO sp_whatsapp_stats SET ?", data,  (err, res)=>{
 	            return resolve(res, true);
 	        });
 	    });
